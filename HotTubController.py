@@ -1,5 +1,4 @@
 # TODO:
-# - Retrieve target temp from ThingSpeak control channel
 # - Implement things like target "as of"
 # - See what happens if I shoot start.sh and python in the head - do relays stay on?
 # - Allow for maintenance schedule, and recurring target temps (e.g., 8am every weekday)
@@ -27,8 +26,8 @@ READING_DELAY = 58 # seconds
 TEMP_LIMIT = 103.5 # safety limit
 TEMP_TARGET = 102.0
 UPPER_TEMP_SLOP = LOWER_TEMP_SLOP = 0.5 # temperature regulation window
-HEATING_TEMP_DIP_DELAY = 3 # delay after heater-on before temp stops falling
-SUITABLE_SAMPLE_SIZE = 5 # number of readings before we trust heatRate()
+HEATING_TEMP_DIP_DELAY = 5 # delay after heater-on before temp stops falling
+SUITABLE_SAMPLE_SIZE = 10 # number of readings before we trust heatRate()
 
 safety = RelaySafety.RelaySafety() # Shuts off relays if app crashes
 
@@ -68,13 +67,13 @@ def main():
 			else: # Heater not on
 				if s.tempRate > 2.5:
 					setAlert(s, "Should be cooling but is heating > 1deg/hr!")
-					shutDown(s)
+					# shutDown(s) -- we're not going to panic over this
 				elif s.tempRate < 1 and s.tempRate >= -2:
 					setAlert(s, "Cooling normally")
 				elif s.tempRate < -2 and s.tempRate >= -6:
 					setAlert(s, "Cover likely open (cooling quickly)")
-				elif s.tempRate < -6:
-					setAlert(s, "Cooling > 6 deg/hr! (make sure thermometer is in hot tub)")
+				elif s.tempRate < -10:
+					setAlert(s, "Cooling > 10 deg/hr! (make sure thermometer is in hot tub)")
 					shutDown(s)
 
 		# Temperature regulation routine:
@@ -96,6 +95,7 @@ def main():
 		debug(s)
 		debug("=============================================================")
 		# </debug>
+		sys.stdout.flush()
 		time.sleep(READING_DELAY) # TODO: Some alternative to "time.sleep()"?
 		s.cycleCounter += 1
 
